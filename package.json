@@ -1,0 +1,21 @@
+{
+  "name": "fit-maps",
+  "version": "1.0.0",
+  "description": "Resposive maps",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "fit-maps"
+  },
+  "keywords": [
+    "map",
+    "resposive",
+    "mobile",
+    "rwd"
+  ],
+  "author": "Chris Wigley",
+  "license": "ISC"
+}

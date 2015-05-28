@@ -1,0 +1,49 @@
+<!doctype html>
+
+<html>
+
+  <head>
+
+    <title>fitmaps demo</title>
+    <style>
+      .map {
+        position: relative;
+        height: 100%;
+        min-height: 480px;
+        max-height: 640px;
+      }
+    </style>
+    <script src="fitmaps.js"></script>
+    <script>
+      (function(win, doc, undefined) {
+
+        doc.onreadystatechange = function() {
+          if (document.readyState === "complete") {
+            var mapEl = doc.querySelector(".map");
+            var fm;
+
+            if (!mapEl) { return; }
+
+            fm = new fitmap(mapEl, {
+              coord: {
+                latitude: '41.8822833',
+                longitude: '-87.6290902'
+              },
+              address: {},
+              zoom: '12'
+            });
+          }
+        }
+
+      }(window, document));
+    </script>
+
+  </head>
+
+  <body>
+
+    <div class="map"></div>
+
+  </body>
+
+</html>
