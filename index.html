@@ -18,20 +18,20 @@
       (function(win, doc, undefined) {
 
         doc.onreadystatechange = function() {
-          if (document.readyState === "complete") {
+          if (doc.readyState === "complete") {
             var mapEl = doc.querySelector(".map");
             var fm;
 
             if (!mapEl) { return; }
 
-            fm = new fitmap(mapEl, {
+            fm = new FitMap({
               coord: {
                 latitude: '41.8822833',
                 longitude: '-87.6290902'
               },
               address: {},
               zoom: '12'
-            });
+            }).render(mapEl);
           }
         }
 
