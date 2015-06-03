@@ -1,0 +1,7 @@
+{
+    "preset": "jquery",
+    "requireCurlyBraces": true,
+    "validateQuoteMarks": true,
+    "maximumLineLength": 120,
+    "excludeFiles": ["node_modules/**", "src/!(bar|foo)"]
+}
