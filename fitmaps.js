@@ -4,6 +4,7 @@
 
 var hasEventListeners = !!window.addEventListener;
 var document = window.document;
+var clientWidth = document.body ? document.body.clientWidth : null;
 
 /**
  * [messages description]
@@ -74,6 +75,42 @@ var fireEvent = function( el, eventName, data ) {
 };
 
 /**
+ * Returns a function, that, as long as it continues to be invoked, will not
+ * be triggered. The function will be called after it stops being called for
+ * N milliseconds. If `immediate` is passed, trigger the function on the
+ * leading edge, instead of the trailing.
+ *
+ * @param {[type]} func      [description]
+ * @param {[type]} wait      [description]
+ * @param {[type]} immediate [description]
+ *
+ * @return {[type]}
+ * @credit http://davidwalsh.name/javascript-debounce-function
+ */
+var debounce = function( func, wait, immediate ) {
+  var timeout;
+  return function() {
+    var context = this;
+    var args = arguments;
+    var callNow;
+
+    var later = function() {
+      timeout = null;
+      if ( !immediate ) {
+        func.apply( context, args );
+      }
+    };
+
+    callNow = immediate && !timeout;
+    clearTimeout( timeout );
+    timeout = setTimeout( later, wait );
+    if ( callNow ) {
+      func.apply( context, args );
+    }
+  };
+};
+
+/**
  * [hasClass description]
  *
  * @param {[type]} el        [description]
@@ -111,13 +148,13 @@ var removeClass = function( el, className ) {
 
 /**
  * [isArray description]
- *
+ * check native isArray first
  * @param {[type]} obj [description]
  *
  * @return {Boolean}
  */
-var isArray = function( obj ) {
-  return ( /Array/ ).test( Object.prototype.toString.call( obj ) );
+var isArray = Array.isArray || function( value ) {
+    return toString.call( value ) === '[object Array]';
 };
 
 /**
@@ -128,8 +165,8 @@ var isArray = function( obj ) {
  * @return {Boolean}
  */
 var isObject = function( obj ) {
-  if ( obj === null ) { return false; }
-  return obj === Object( obj );
+  var type = typeof obj;
+  return type === 'function' || type === 'object' && !!obj;
 };
 
 /**
@@ -144,18 +181,14 @@ var isNumber = function( obj ) {
 };
 
 /**
- * [isElement description]
+ * [isDomNode description]
  *
  * @param {[type]} obj [description]
  *
  * @return {Boolean}
  */
-var isElement = function( obj ) {
-  return (
-    typeof HTMLElement === 'object' ? obj instanceof HTMLElement : //DOM2
-    obj && obj !== null && typeof obj === 'object' && obj.nodeType === 1 && typeof obj.nodeName === 'string'
-
-  );
+var isDomNode = function( obj ) {
+  return isObject( obj ) && obj.nodeType > 0;
 };
 
 /**
@@ -167,8 +200,7 @@ var isElement = function( obj ) {
  * @return {Boolean}
  */
 var isValidLatitudeLongitude = function( lat, lng ) {
-  var latlong = lat + ',' + lng;
-  return /^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$/.test( latlong );
+  return /^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$/.test( lat + ',' + lng );
 };
 
 /**
@@ -217,7 +249,8 @@ var extend = function( to, from, overwrite ) {
  */
 var defaults = {
   target: '.map',
-  wrapperClass: '.fitmap-wrapper',
+  wrapperClass: '.fitmap-embed',
+  staticWrapperClass: '.fitmap-static',
   mapUrl: null,
   mapType: 'm', // normal (k - satellite, h - hybrid, p - terrain)
   coord: null,
@@ -228,6 +261,7 @@ var defaults = {
   zoom: 12,
   lang: 'en',
   includeStyles: true,
+  breakpoint: 550,
   onRender: null
 };
 
@@ -278,30 +312,16 @@ var formatCoordinates = function( coordinates ) {
  *
  * @return {[type]}
  */
-var renderStyles = function( selector ) {
-  if ( !document.getElementById( 'fitmap-style' ) ) {
-    var head = document.head || document.getElementsByTagName( 'head' )[0];
-    var css = '.{$SEL$}{width:100%;position:relative;padding:0;}.{$SEL$}' +
-              ' iframe,{$SEL$},.{$SEL$} embed {position:absolute;top:0;' +
-              'left:0;width:100%;height:100%;}'.replace( '$SEL$', selector );
-    var div = document.createElement( 'div' );
+var renderStyles = function( opts ) {
+  var head = document.head || document.getElementsByTagName( 'head' )[0];
+  var css = '.{$SEL$}{width:100%;position:relative;padding:0;}.{$SEL$}' +
+            ' iframe,{$SEL$},.{$SEL$} embed {position:absolute;top:0;' +
+            'left:0;width:100%;height:100%;}'.replace( '$SEL$', opts.wrapperClass );
+  var div = document.createElement( 'div' );
 
-    div.innerHTML = '<p>x</p><style id="fitmap-style">' + css + '</style>';
+  div.innerHTML = '<p>x</p><style id="fitmap-style">' + css + '</style>';
 
-    head.appendChild( div.childNodes[1] );
-  }
-};
-
-/**
- * [renderStaticImage description]
- *
- * @param {[type]} url  [description]
- * @param {[type]} opts [description]
- *
- * @return {[type]}
- */
-var renderStaticImage = function( url, opts ) {
-  return '';
+  head.appendChild( div.childNodes[1] );
 };
 
 /**
@@ -321,6 +341,17 @@ var renderFrame = function( opts ) {
 };
 
 /**
+ * [renderStaticMapUrl description]
+ *
+ * @param {[type]} opts [description]
+ *
+ * @return {[type]}
+ */
+var renderStaticMapUrl = function( opts ) {
+  return 'http://maps.google.com/maps/api/staticmap?center=00,-00,17z&zoom=13&markers=00,-00&size=640x320&sensor=true';
+};
+
+/**
  * [renderMapUrl description]
  *
  * @param {[type]} opts [description]
@@ -330,14 +361,24 @@ var renderFrame = function( opts ) {
  * @example https://maps.google.com/?q={name of the place you want to
  * query}&ll={latitude},{longtitude}&t={map type}&z={zoom level}
  */
-var renderMapUrl = function( opts ) {
-  var baseUrl = '//maps.google.com/maps?q=$ADDR$&amp;hl=$LANG$&amp;' +
-      't=$TYPE$&amp;z=$ZOOM$&amp;Iwloc=A&amp;iwd=1&amp;ll=$LATLONG$&amp;' +
-      'output=embed';
-
+var renderEmbeddedMapUrl = function( opts ) {
+  var embedUrl;
   var address = null;
   var latlng = null;
   var label = null;
+
+  if ( !opts.address && !opts.coord ) {
+    window.console && console.log( messages.notEnoughData );
+    return;
+  }
+
+  if ( opts.apiKey ) {
+    embedUrl = 'https://www.google.com/maps/embed/v1/place?q=$LOC$';
+  } else {
+    embedUrl = '//maps.google.com/maps?q=$LOC$&amp;hl=$LANG$&amp;' +
+              't=$TYPE$&amp;z=$ZOOM$&amp;Iwloc=A&amp;iwd=1&amp;' +
+              'll=$LATLONG$&amp;output=embed';
+  }
 
   if ( opts.address ) {
     address = opts.address;
@@ -350,12 +391,12 @@ var renderMapUrl = function( opts ) {
     label = '(' + opts.label.replace( / /g, '+' ) + ')';
   }
 
-  return baseUrl
-          .replace( '$ADDR$', ( label ? label : '' ) + ( address || 'loc:' + latlng ) )
+  return embedUrl
+          .replace( '$LOC$', ( label ? label : '' ) + ( address || 'loc:' + latlng ) )
           .replace( '$LANG$', opts.lang )
           .replace( '$TYPE$', opts.mapType )
           .replace( '$ZOOM$', opts.zoom )
-          .replace( '$LATLONG$', latlng || '' )
+          .replace( '$LATLONG$', latlng || '' );
 
 };
 
@@ -367,17 +408,40 @@ var renderMapUrl = function( opts ) {
  *
  * @return {[type]}
  */
-var renderMap = function( opts, dest ) {
-  dest = isElement( dest ) ? dest : document.querySelector( dest );
+var renderEmbeddedMap = function( opts ) {
+  var dest = isDomNode( opts.target ) ? opts.target : document.querySelector( opts.target );
   var mapHtml;
 
-  if ( !isElement( dest ) ) {
+  if ( !isDomNode( dest ) ) {
     window.console && console.log( dest + messages.invalidTarget );
     return;
   }
 
   mapHtml = '<div class="' + opts.wrapperClass + '">';
   mapHtml += renderFrame( opts );
+  mapHtml += '</div>';
+
+  dest.innerHTML = mapHtml;
+};
+
+/**
+ * [renderStaticMap description]
+ *
+ * @param {[type]} opts [description]
+ *
+ * @return {[type]}
+ */
+var renderStaticMap = function( opts ) {
+  var dest = isDomNode( opts.target ) ? opts.target : document.querySelector( opts.target );
+  var mapHtml;
+
+  if ( !isDomNode( dest ) ) {
+    window.console && console.log( dest + messages.invalidTarget );
+    return;
+  }
+
+  mapHtml = '<div class="' + opts.staticWrapperClass + '">';
+  mapHtml += '<img src="' + renderStaticMapUrl( opts ) + '" />';
   mapHtml += '</div>';
 
   dest.innerHTML = mapHtml;
@@ -391,6 +455,8 @@ var renderMap = function( opts, dest ) {
 var FitMap = function( options ) {
   var self = this;
   var opts = this.configure( options );
+
+  this.bindResize();
 };
 
 /**
@@ -416,9 +482,9 @@ FitMap.prototype = {
 
     opts.address = opts.address ? formatAddress( opts.address ) : null;
 
-    opts.height = isNumber( stripUnit( opts.height ) ) ? stripUnit( opts.height ) : defaults.height;
+    opts.height = isNumber( opts.height ) ? opts.height : isNumber( stripUnit( opts.height ) ) ? stripUnit( opts.height ) : defaults.height;
 
-    opts.width = isNumber( stripUnit( opts.width ) ) ? stripUnit( opts.width ) : defaults.width;
+    opts.width = isNumber( opts.width ) ? opts.width : isNumber( stripUnit( opts.width ) ) ? stripUnit( opts.width ) : defaults.width;
 
     opts.zoom = isNumber( opts.zoom ) ? opts.zoom : defaults.zoom;
 
@@ -429,9 +495,27 @@ FitMap.prototype = {
       opts.coord.longitude = isNumber( opts.coord.longitude ) ? opts.coord.longitude : null;
     }
 
-    opts.mapUrl = opts.mapUrl ? opts.mapUrl : renderMapUrl( opts );
+    opts.mapUrl = opts.mapUrl ? opts.mapUrl : renderEmbeddedMapUrl( opts );
+
+    opts.breakpoint = isNumber( opts.breakpoint ) ? opts.breakpoint : defaults.breakpoint;
 
     return opts;
+  },
+
+  /**
+   * [bindResize description]
+   *
+   * @return {[type]}
+   */
+  bindResize: function() {
+    var self = this;
+
+    var throttledResize = debounce( function() {
+      clientWidth = document.body.clientWidth;
+      self.render();
+    }, 250 );
+
+    addEvent( window, 'resize', throttledResize );
   },
 
   /**
@@ -444,18 +528,30 @@ FitMap.prototype = {
   render: function( target ) {
     var opts = this._options;
     var coords = opts.coord;
-    var dest = target || opts.target;
-    var clientWidth = document.body.clientWidth;
+    var mapWrapper = document.querySelector( opts.wrapperClass );
+    var staticMapWrapper = document.querySelector( opts.staticWrapperClass );
+
+    opts.target = target || opts.target;
+
+    clientWidth = clientWidth || document.body.clientWidth;
 
     if ( !opts.address && !opts.coord ) {
       window.console && console.log( messages.notEnoughData );
       return;
     }
 
-    renderMap( opts, dest );
+    if ( clientWidth > opts.breakpoint ) {
+      if ( !mapWrapper ) {
+        renderEmbeddedMap( opts );
+      }
+    } else {
+      if ( !staticMapWrapper ) {
+        renderStaticMap( opts );
+      }
+    }
 
-    if ( opts.includeStyles ) {
-      renderStyles( opts.wrapperClass );
+    if ( opts.includeStyles && !document.getElementById( 'fitmap-style' ) ) {
+      renderStyles( opts );
     }
 
     opts.onRender && opts.onRender();
