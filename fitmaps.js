@@ -1,4 +1,4 @@
-;(function() {
+( function() {
 
 'use strict';
 
@@ -23,12 +23,11 @@ var messages = {
  * @param {Function} callback [description]
  * @param {[type]}   capture  [description]
  */
-var addEvent = function(el, evt, callback, capture) {
-  if (hasEventListeners) {
-    el.addEventListener(evt, callback, !!capture);
-  }
-  else {
-    el.attachEvent('on' + e, callback);
+var addEvent = function( el, evt, callback, capture ) {
+  if ( hasEventListeners ) {
+    el.addEventListener( evt, callback, !!capture );
+  } else {
+    el.attachEvent( 'on' + e, callback );
   }
 };
 
@@ -42,12 +41,11 @@ var addEvent = function(el, evt, callback, capture) {
  *
  * @return {[type]}
  */
-var removeEvent = function(el, evt, callback, capture) {
-  if (hasEventListeners) {
-    el.removeEventListener(evt, callback, !!capture);
-  }
-  else {
-    el.detachEvent('on' + evt, callback);
+var removeEvent = function( el, evt, callback, capture ) {
+  if ( hasEventListeners ) {
+    el.removeEventListener( evt, callback, !!capture );
+  } else {
+    el.detachEvent( 'on' + evt, callback );
   }
 };
 
@@ -60,19 +58,18 @@ var removeEvent = function(el, evt, callback, capture) {
  *
  * @return {[type]}
  */
-var fireEvent = function(el, eventName, data) {
+var fireEvent = function( el, eventName, data ) {
   var ev;
 
-  if (document.createEvent) {
-    ev = document.createEvent('HTMLEvents');
-    ev.initEvent(eventName, true, false);
-    ev = extend(ev, data);
-    el.dispatchEvent(ev);
-  }
-  else if (document.createEventObject) {
+  if ( document.createEvent ) {
+    ev = document.createEvent( 'HTMLEvents' );
+    ev.initEvent( eventName, true, false );
+    ev = extend( ev, data );
+    el.dispatchEvent( ev );
+  } else if ( document.createEventObject ) {
     ev = document.createEventObject();
-    ev = extend(ev, data);
-    el.fireEvent('on' + eventName, ev);
+    ev = extend( ev, data );
+    el.fireEvent( 'on' + eventName, ev );
   }
 };
 
@@ -84,8 +81,8 @@ var fireEvent = function(el, eventName, data) {
  *
  * @return {Boolean}
  */
-var hasClass = function(el, className) {
-  return (' ' + el.className + ' ').indexOf(' ' + className + ' ') !== -1;
+var hasClass = function( el, className ) {
+  return ( ' ' + el.className + ' ' ).indexOf( ' ' + className + ' ' ) !== -1;
 };
 
 /**
@@ -94,9 +91,9 @@ var hasClass = function(el, className) {
  * @param {[type]} el        [description]
  * @param {[type]} className [description]
  */
-var addClass = function(el, className) {
-  if (!hasClass(el, className)) {
-    el.className = (el.className === '') ? className : el.className + ' ' + className;
+var addClass = function( el, className ) {
+  if ( !hasClass( el, className ) ) {
+    el.className = ( el.className === '' ) ? className : el.className + ' ' + className;
   }
 };
 
@@ -108,8 +105,8 @@ var addClass = function(el, className) {
  *
  * @return {[type]}
  */
-var removeClass = function(el, className) {
-  el.className = trim((' ' + el.className + ' ').replace(' ' + className + ' ', ' '));
+var removeClass = function( el, className ) {
+  el.className = trim( ( ' ' + el.className + ' ' ).replace( ' ' + className + ' ', ' ' ) );
 };
 
 /**
@@ -119,8 +116,8 @@ var removeClass = function(el, className) {
  *
  * @return {Boolean}
  */
-var isArray = function(obj) {
-  return (/Array/).test(Object.prototype.toString.call(obj));
+var isArray = function( obj ) {
+  return ( /Array/ ).test( Object.prototype.toString.call( obj ) );
 };
 
 /**
@@ -130,9 +127,9 @@ var isArray = function(obj) {
  *
  * @return {Boolean}
  */
-var isObject = function(obj) {
-  if (obj === null) { return false; }
-  return obj === Object(obj);
+var isObject = function( obj ) {
+  if ( obj === null ) { return false; }
+  return obj === Object( obj );
 };
 
 /**
@@ -142,8 +139,8 @@ var isObject = function(obj) {
  *
  * @return {Boolean}
  */
-var isNumber = function(obj) {
-  return !isArray(obj) && (obj - parseFloat(obj) + 1) >= 0;
+var isNumber = function( obj ) {
+  return !isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
 };
 
 /**
@@ -153,10 +150,11 @@ var isNumber = function(obj) {
  *
  * @return {Boolean}
  */
-var isElement = function(obj) {
+var isElement = function( obj ) {
   return (
-    typeof HTMLElement === "object" ? obj instanceof HTMLElement : //DOM2
-    obj && obj !== null && typeof obj === "object" && obj.nodeType === 1 && typeof obj.nodeName === "string"
+    typeof HTMLElement === 'object' ? obj instanceof HTMLElement : //DOM2
+    obj && obj !== null && typeof obj === 'object' && obj.nodeType === 1 && typeof obj.nodeName === 'string'
+
   );
 };
 
@@ -168,9 +166,9 @@ var isElement = function(obj) {
  *
  * @return {Boolean}
  */
-var isValidLatitudeLongitude = function(lat, lng) {
+var isValidLatitudeLongitude = function( lat, lng ) {
   var latlong = lat + ',' + lng;
-  return /^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$/.test(latlong);
+  return /^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$/.test( latlong );
 };
 
 /**
@@ -180,8 +178,8 @@ var isValidLatitudeLongitude = function(lat, lng) {
  *
  * @return {[type]}
  */
-var stripUnit = function(val) {
-  return parseFloat(val);
+var stripUnit = function( val ) {
+  return parseFloat( val );
 };
 
 /**
@@ -193,19 +191,19 @@ var stripUnit = function(val) {
  *
  * @return {[type]}
  */
-var extend = function(to, from, overwrite) {
+var extend = function( to, from, overwrite ) {
   var prop, hasProp;
-  for (prop in from) {
+  for ( prop in from ) {
     hasProp = to[prop] !== undefined;
-    if (hasProp && typeof from[prop] === 'object' && from[prop] !== null && from[prop].nodeName === undefined) {
-        if (isArray(from[prop])) {
-            if (overwrite) {
-                to[prop] = from[prop].slice(0);
-            }
+    if ( hasProp && typeof from[prop] === 'object' && from[prop] !== null && from[prop].nodeName === undefined ) {
+        if ( isArray( from[prop] ) ) {
+          if ( overwrite ) {
+              to[prop] = from[prop].slice( 0 );
+          }
         } else {
-            to[prop] = extend({}, from[prop], overwrite);
+            to[prop] = extend( {}, from[prop], overwrite );
         }
-    } else if (overwrite || !hasProp) {
+    } else if ( overwrite || !hasProp ) {
         to[prop] = from[prop];
     }
   }
@@ -240,26 +238,26 @@ var defaults = {
  *
  * @return {[type]}
  */
-var formatAddress = function(addr) {
+var formatAddress = function( addr ) {
   var address = '';
 
-  if (addr.street) {
+  if ( addr.street ) {
     address = addr.street;
   }
 
-  if (addr.city) {
+  if ( addr.city ) {
     address = address + ', ' + addr.city;
   }
 
-  if (addr.state) {
+  if ( addr.state ) {
     address = address + ', ' + addr.state;
   }
 
-  if (addr.postalCode) {
+  if ( addr.postalCode ) {
     address = address + ', ' + addr.postalCode
   }
 
-  return address.replace(/ /g, '+');
+  return address.replace( / /g, '+' );
 };
 
 /**
@@ -269,7 +267,7 @@ var formatAddress = function(addr) {
  *
  * @return {[type]}
  */
-var formatCoordinates = function(coordinates) {
+var formatCoordinates = function( coordinates ) {
   return coordinates.latitude + ',' + coordinates.longitude;
 };
 
@@ -280,15 +278,17 @@ var formatCoordinates = function(coordinates) {
  *
  * @return {[type]}
  */
-var renderStyles = function(selector) {
-  if(!document.getElementById('fitmap-style')) {
-    var head = document.head || document.getElementsByTagName('head')[0];
-    var css = '.{$SEL$}{width:100%;position:relative;padding:0;}.{$SEL$} iframe,{$SEL$},.{$SEL$} embed {position:absolute;top:0;left:0;width:100%;height:100%;}'.replace('$SEL$', selector);
-    var div = document.createElement("div");
+var renderStyles = function( selector ) {
+  if ( !document.getElementById( 'fitmap-style' ) ) {
+    var head = document.head || document.getElementsByTagName( 'head' )[0];
+    var css = '.{$SEL$}{width:100%;position:relative;padding:0;}.{$SEL$}' +
+              ' iframe,{$SEL$},.{$SEL$} embed {position:absolute;top:0;' +
+              'left:0;width:100%;height:100%;}'.replace( '$SEL$', selector );
+    var div = document.createElement( 'div' );
 
     div.innerHTML = '<p>x</p><style id="fitmap-style">' + css + '</style>';
 
-    head.appendChild(div.childNodes[1]);
+    head.appendChild( div.childNodes[1] );
   }
 };
 
@@ -300,7 +300,7 @@ var renderStyles = function(selector) {
  *
  * @return {[type]}
  */
-var renderStaticImage = function(url, opts) {
+var renderStaticImage = function( url, opts ) {
   return '';
 };
 
@@ -312,8 +312,12 @@ var renderStaticImage = function(url, opts) {
  *
  * @return {[type]}
  */
-var renderFrame = function(opts) {
-  return '<iframe width="' + opts.width + '" height="' + opts.height + '" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="' + opts.mapUrl + '"></iframe>';
+var renderFrame = function( opts ) {
+  var iframe = '<iframe width="' + opts.width + '" height="' + opts.height +
+    '" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"' +
+    ' src="' +   opts.mapUrl + '"></iframe>';
+
+  return iframe;
 };
 
 /**
@@ -326,29 +330,32 @@ var renderFrame = function(opts) {
  * @example https://maps.google.com/?q={name of the place you want to
  * query}&ll={latitude},{longtitude}&t={map type}&z={zoom level}
  */
-var renderMapUrl = function(opts) {
-  var baseUrl = '//maps.google.com/maps?q=$ADDR$&amp;hl=$LANG$&amp;t=$TYPE$&amp;z=$ZOOM$&amp;Iwloc=A&amp;iwd=1&amp;ll=$LATLONG$&amp;output=embed';
+var renderMapUrl = function( opts ) {
+  var baseUrl = '//maps.google.com/maps?q=$ADDR$&amp;hl=$LANG$&amp;' +
+      't=$TYPE$&amp;z=$ZOOM$&amp;Iwloc=A&amp;iwd=1&amp;ll=$LATLONG$&amp;' +
+      'output=embed';
+
   var address = null;
   var latlng = null;
   var label = null;
 
-  if (opts.address) {
+  if ( opts.address ) {
     address = opts.address;
   }
-  if (opts.coord) {
-    latlng = formatCoordinates(opts.coord, opts.label);
+  if ( opts.coord ) {
+    latlng = formatCoordinates( opts.coord, opts.label );
   }
 
-  if (opts.label) {
-    label = '(' + opts.label.replace(/ /g, '+') + ')';
+  if ( opts.label ) {
+    label = '(' + opts.label.replace( / /g, '+' ) + ')';
   }
 
   return baseUrl
-          .replace('$ADDR$', (label ? label : '') + (address || 'loc:' + latlng))
-          .replace('$LANG$', opts.lang)
-          .replace('$TYPE$', opts.mapType)
-          .replace('$ZOOM$', opts.zoom)
-          .replace('$LATLONG$', latlng || '')
+          .replace( '$ADDR$', ( label ? label : '' ) + ( address || 'loc:' + latlng ) )
+          .replace( '$LANG$', opts.lang )
+          .replace( '$TYPE$', opts.mapType )
+          .replace( '$ZOOM$', opts.zoom )
+          .replace( '$LATLONG$', latlng || '' )
 
 };
 
@@ -360,17 +367,17 @@ var renderMapUrl = function(opts) {
  *
  * @return {[type]}
  */
-var renderMap = function(opts, dest) {
-  dest = isElement(dest) ? dest : document.querySelector(dest);
+var renderMap = function( opts, dest ) {
+  dest = isElement( dest ) ? dest : document.querySelector( dest );
   var mapHtml;
 
-  if (!isElement(dest)) {
-    window.console && console.log(dest + messages.invalidTarget);
+  if ( !isElement( dest ) ) {
+    window.console && console.log( dest + messages.invalidTarget );
     return;
   }
 
   mapHtml = '<div class="' + opts.wrapperClass + '">';
-  mapHtml += renderFrame(opts);
+  mapHtml += renderFrame( opts );
   mapHtml += '</div>';
 
   dest.innerHTML = mapHtml;
@@ -381,9 +388,9 @@ var renderMap = function(opts, dest) {
  *
  * @param {[type]} options [description]
  */
-var FitMap = function (options) {
+var FitMap = function( options ) {
   var self = this;
-  var opts = this.configure(options);
+  var opts = this.configure( options );
 };
 
 /**
@@ -400,29 +407,29 @@ FitMap.prototype = {
    *
    * @return {[type]}
    */
-  configure: function(options) {
-    if (!this._options) {
-      this._options = extend({}, defaults, true);
+  configure: function( options ) {
+    if ( !this._options ) {
+      this._options = extend( {}, defaults, true );
     }
 
-    var opts = extend(this._options, options, true);
+    var opts = extend( this._options, options, true );
 
-    opts.address = opts.address ? formatAddress(opts.address) : null;
+    opts.address = opts.address ? formatAddress( opts.address ) : null;
 
-    opts.height = isNumber(stripUnit(opts.height)) ? stripUnit(opts.height) : defaults.height;
+    opts.height = isNumber( stripUnit( opts.height ) ) ? stripUnit( opts.height ) : defaults.height;
 
-    opts.width = isNumber(stripUnit(opts.width)) ? stripUnit(opts.width) : defaults.width;
+    opts.width = isNumber( stripUnit( opts.width ) ) ? stripUnit( opts.width ) : defaults.width;
 
-    opts.zoom = isNumber(opts.zoom) ? opts.zoom : defaults.zoom;
+    opts.zoom = isNumber( opts.zoom ) ? opts.zoom : defaults.zoom;
 
-    if (isObject(opts.coord)) {
+    if ( isObject( opts.coord ) ) {
 
-      opts.coord.latitude = isNumber(opts.coord.latitude) ? opts.coord.latitude : null;
+      opts.coord.latitude = isNumber( opts.coord.latitude ) ? opts.coord.latitude : null;
 
-      opts.coord.longitude = isNumber(opts.coord.longitude) ? opts.coord.longitude : null;
+      opts.coord.longitude = isNumber( opts.coord.longitude ) ? opts.coord.longitude : null;
     }
 
-    opts.mapUrl = opts.mapUrl ? opts.mapUrl : renderMapUrl(opts);
+    opts.mapUrl = opts.mapUrl ? opts.mapUrl : renderMapUrl( opts );
 
     return opts;
   },
@@ -434,21 +441,22 @@ FitMap.prototype = {
    *
    * @return {[type]}
    */
-  render: function(target) {
+  render: function( target ) {
     var opts = this._options;
     var coords = opts.coord;
     var dest = target || opts.target;
     var clientWidth = document.body.clientWidth;
 
-    if (!opts.address && !opts.coord) {
-      window.console && console.log(messages.notEnoughData);
+    if ( !opts.address && !opts.coord ) {
+      window.console && console.log( messages.notEnoughData );
       return;
     }
 
-    renderMap(opts, dest);
+    renderMap( opts, dest );
 
-    if (opts.includeStyles)
-      renderStyles(opts.wrapperClass);
+    if ( opts.includeStyles ) {
+      renderStyles( opts.wrapperClass );
+    }
 
     opts.onRender && opts.onRender();
   },
@@ -458,7 +466,7 @@ FitMap.prototype = {
    *
    * @param {[type]} url [description]
    */
-  setMapUrl: function(url) {
+  setMapUrl: function( url ) {
     this._options.mapUrl = url;
   },
 
@@ -473,14 +481,14 @@ FitMap.prototype = {
 
 };
 
-if (typeof window !== 'undefined') {
+if ( typeof window !== 'undefined' ) {
   window.FitMap = FitMap;
 }
 
-if (typeof exports === 'object') {
+if ( typeof exports === 'object' ) {
   module.exports = FitMap;
 }
 
 return FitMap;
 
-}());
+}() );
