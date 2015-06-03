@@ -17,5 +17,6 @@
     "rwd"
   ],
   "author": "Chris Wigley",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {}
 }
