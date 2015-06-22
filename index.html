@@ -9,8 +9,8 @@
       .map {
         position: relative;
         height: 100%;
-        min-height: 480px;
-        max-height: 640px;
+        /*min-height: 480px;
+        max-height: 640px;*/
       }
     </style>
   </head>
@@ -21,38 +21,44 @@
 
   </body>
   <!-- FitMap script -->
+  <script src="//maps.google.com/maps/api/js?sensor=true"></script>
   <script src="fitmaps.js"></script>
   <!-- Render Map on doc ready -->
   <script>
-    (function(win, doc, undefined) {
+    ( function( win, doc, undefined ) {
       var opts = {
-            coord: {
-              latitude: '41.8822833',
-              longitude: '-87.6290902'
-            },
+            lat: '41.8822833',
+            lng: '-87.6290902',
             address: {
-              street: '1 N Dearborn St',
+              street: '222 N Lasalle St',
               city: 'Chicago',
               state: 'IL',
               postalCode: '60602'
             },
-            label: 'My Business',
-            zoom: '16'
+            markers: [ {
+              lat: '41.8822833',
+              lng: '-87.6290902',
+              color: 'red'
+            } ],
+            label: 'One North',
+            zoom: '12',
+            size: [ 630, 300 ]
           };
 
       doc.onreadystatechange = function() {
-        if (doc.readyState === "complete") {
-          var mapEl = doc.querySelector(".map-here");
+        if ( doc.readyState === 'complete' ) {
+          var mapEl = doc.querySelector( '.map-here' );
           var fm;
 
-          if (!mapEl) return;
+          if ( !mapEl ) { return };
 
-          fm = new FitMap(opts).render(mapEl);
+          fm = new FitMap( opts ).render( mapEl );
 
         }
       }
 
-    }(window, document));
+    }( window, document ) );
+
   </script>
 
 </html>

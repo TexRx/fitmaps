@@ -223,24 +223,32 @@ var stripUnit = function( val ) {
  *
  * @return {[type]}
  */
-var extend = function( to, from, overwrite ) {
-  var prop, hasProp;
-  for ( prop in from ) {
-    hasProp = to[prop] !== undefined;
-    if ( hasProp && typeof from[prop] === 'object' && from[prop] !== null && from[prop].nodeName === undefined ) {
-        if ( isArray( from[prop] ) ) {
-          if ( overwrite ) {
-              to[prop] = from[prop].slice( 0 );
-          }
-        } else {
-            to[prop] = extend( {}, from[prop], overwrite );
-        }
-    } else if ( overwrite || !hasProp ) {
-        to[prop] = from[prop];
-    }
+var extend = function( obj, newObj ) {
+  var name;
+
+  if ( obj === newObj ) {
+    return obj;
   }
-  return to;
+
+  for ( name in newObj ) {
+    obj[name] = newObj[name];
+  }
+
+  return obj;
 };
+
+function geocodeAddress() {
+  var geocoder = new google.maps.Geocoder();
+  geocoder.geocode( { 'address': address }, function( results, status ) {
+    if ( status == google.maps.GeocoderStatus.OK ) {
+      map.setCenter( results[0].geometry.location );
+      var marker = new google.maps.Marker( {
+        map: map,
+        position: results[0].geometry.location
+      } );
+    }
+  } );
+}
 
 /**
  * [defaults description]
@@ -249,15 +257,16 @@ var extend = function( to, from, overwrite ) {
  */
 var defaults = {
   target: '.map',
-  wrapperClass: '.fitmap-embed',
-  staticWrapperClass: '.fitmap-static',
+  wrapperClass: 'fitmap-container',
+  mapLinkClass: 'fitmap-link',
+  staticImgClass: 'fitmap-static',
   mapUrl: null,
-  mapType: 'm', // normal (k - satellite, h - hybrid, p - terrain)
-  coord: null,
   address: null,
-  label: '',
-  width: 980,
-  height: 560,
+  lat: null,
+  lng: null,
+  mapType: 'm',
+  label: null,
+  size: [ 980, 560 ],
   zoom: 12,
   lang: 'en',
   includeStyles: true,
@@ -314,9 +323,13 @@ var formatCoordinates = function( coordinates ) {
  */
 var renderStyles = function( opts ) {
   var head = document.head || document.getElementsByTagName( 'head' )[0];
-  var css = '.{$SEL$}{width:100%;position:relative;padding:0;}.{$SEL$}' +
-            ' iframe,{$SEL$},.{$SEL$} embed {position:absolute;top:0;' +
-            'left:0;width:100%;height:100%;}'.replace( '$SEL$', opts.wrapperClass );
+  var css = 'iframe {max-width:100%;}' +
+            '.' + opts.staticImgClass + ' {display:block;height:auto;max-width:100%;' +
+            '.__SEL__ {width:100%;margin:0 auto;height:0;padding:0;padding-top:38%;position:relative;} ' +
+            '.__SEL__ iframe, .__SEL__ embed ' +
+            '{position:absolute;bottom:0;left:0;right:0;top:0;width:100%;height:100%;}';
+
+  css = css.split( '__SEL__' ).join( opts.wrapperClass );
   var div = document.createElement( 'div' );
 
   div.innerHTML = '<p>x</p><style id="fitmap-style">' + css + '</style>';
@@ -333,11 +346,19 @@ var renderStyles = function( opts ) {
  * @return {[type]}
  */
 var renderFrame = function( opts ) {
-  var iframe = '<iframe width="' + opts.width + '" height="' + opts.height +
-    '" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"' +
-    ' src="' +   opts.mapUrl + '"></iframe>';
+  var attr = [];
+  var iframeEl;
+  var iframeStart = '<iframe frameborder="0" scrolling="no" marginheight="0" marginwidth="0"';
+  var iframeEnd = '></iframe>';
 
-  return iframe;
+  if ( opts.size && opts.size.length > 0 ) {
+    attr.push( 'width=' + opts.size[0] );
+    attr.push( 'height=' + opts.size[1] );
+  }
+
+  attr.push( 'src=' + opts.mapUrl );
+
+  return iframeStart + attr.join( ' ' ) + iframeEnd;
 };
 
 /**
@@ -347,8 +368,111 @@ var renderFrame = function( opts ) {
  *
  * @return {[type]}
  */
-var renderStaticMapUrl = function( opts ) {
-  return 'http://maps.google.com/maps/api/staticmap?center=00,-00,17z&zoom=13&markers=00,-00&size=640x320&sensor=true';
+var renderStaticMapUrl = function( options ) {
+  var opts = options;
+  var parameters = [];
+  var data;
+  var staticRoot = ( location.protocol === 'file:' ? 'http:' : location.protocol ) + '//maps.googleapis.com/maps/api/staticmap';
+
+  // if ( opts.mapUrl ) {
+  //   staticRoot = opts.mapUrl;
+  // }
+
+  staticRoot += '?';
+
+  var markers = opts.markers;
+  delete opts.markers;
+
+  if ( !markers && opts.marker ) {
+    markers = [ opts.marker ];
+    delete opts.marker;
+  }
+
+  if ( opts.center ) {
+    parameters.push( 'center=' + opts.center );
+    delete opts.center;
+  } else if ( opts.address ) {
+    parameters.push( 'center=' + opts.address );
+    delete opts.address;
+  } else if ( opts.lat ) {
+    parameters.push( [ 'center=', opts.lat, ',', opts.lng ].join( '' ) );
+    delete opts.lat;
+    delete opts.lng;
+  }
+
+  var size = opts.size;
+
+  if ( size ) {
+    if ( size.join ) {
+      size = size.join( 'x' );
+    }
+    delete opts.size;
+  } else {
+    size = '630x300';
+  }
+
+  parameters.push( 'size=' + size );
+
+  if ( opts.zoom && opts.zoom !== false ) {
+    parameters.push( 'zoom=' + opts.zoom );
+  }
+
+  var sensor = opts.hasOwnProperty( 'sensor' ) ? !!opts.sensor : true;
+  delete opts.sensor;
+  parameters.push( 'sensor=' + sensor );
+
+  if ( markers ) {
+    var marker;
+    var loc;
+
+    for ( var i = 0; data = markers[i]; i++ ) {
+      marker = [];
+
+      if ( data.size && data.size !== 'normal' ) {
+        marker.push( 'size:' + data.size );
+        delete data.size;
+      } else if ( data.icon ) {
+        marker.push ( 'icon:' + encodeURI( data.icon ) );
+        delete data.icon;
+      }
+
+      if ( data.color ) {
+        marker.push( 'color:' + data.color.replace( '#', '0x' ) );
+        delete data.color;
+      }
+
+      if ( data.label ) {
+        marker.push( 'label:' + data.label[0].toUpperCase() );
+        delete data.label;
+      }
+
+      loc = ( data.address ? data.address : data.lat + ',' + data.lng );
+      delete data.address;
+      delete data.lat;
+      delete data.lng;
+
+      for ( var param in data ) {
+        if ( data.hasOwnProperty( param ) ) {
+          marker.push( param + ':' + data[param] );
+        }
+      }
+
+      if ( marker.length || i === 0 ) {
+        marker.push( loc );
+        marker = marker.join( '|' );
+        parameters.push( 'markers=' + encodeURI( marker ) );
+      } else {
+        marker = parameters.pop() + encodeURI( '|' + loc );
+        parameters.push( marker );
+      }
+    }
+  }
+
+  var dpi = window.devicePixelRatio || 1;
+  parameters.push( 'scale=' + dpi );
+
+  parameters = parameters.join( '&' );
+  return staticRoot + parameters;
 };
 
 /**
@@ -362,41 +486,54 @@ var renderStaticMapUrl = function( opts ) {
  * query}&ll={latitude},{longtitude}&t={map type}&z={zoom level}
  */
 var renderEmbeddedMapUrl = function( opts ) {
-  var embedUrl;
-  var address = null;
+  var urlRoot;
+  var params = [];
+  var loc = null;
   var latlng = null;
   var label = null;
 
-  if ( !opts.address && !opts.coord ) {
-    window.console && console.log( messages.notEnoughData );
-    return;
+  if ( opts.apiKey ) {
+    urlRoot = '//www.google.com/maps/embed/v1/place';
+  } else {
+    urlRoot = '//maps.google.com/maps';
   }
 
-  if ( opts.apiKey ) {
-    embedUrl = 'https://www.google.com/maps/embed/v1/place?q=$LOC$';
-  } else {
-    embedUrl = '//maps.google.com/maps?q=$LOC$&amp;hl=$LANG$&amp;' +
-              't=$TYPE$&amp;z=$ZOOM$&amp;Iwloc=A&amp;iwd=1&amp;' +
-              'll=$LATLONG$&amp;output=embed';
-  }
+  urlRoot += '?';
 
   if ( opts.address ) {
-    address = opts.address;
+    loc = opts.address;
+  } else if ( opts.lat ) {
+    loc = opts.lat + ',' + opts.lng;
   }
-  if ( opts.coord ) {
-    latlng = formatCoordinates( opts.coord, opts.label );
+
+  if ( loc === null ) {
+    return null;
   }
 
   if ( opts.label ) {
-    label = '(' + opts.label.replace( / /g, '+' ) + ')';
+    loc += '+(' + opts.label.replace( / /g, '+' ) + ')';
   }
 
-  return embedUrl
-          .replace( '$LOC$', ( label ? label : '' ) + ( address || 'loc:' + latlng ) )
-          .replace( '$LANG$', opts.lang )
-          .replace( '$TYPE$', opts.mapType )
-          .replace( '$ZOOM$', opts.zoom )
-          .replace( '$LATLONG$', latlng || '' );
+  params.push( 'q=' + loc );
+
+  if ( opts.lang ) {
+    params.push( 'hl=' + opts.lang );
+  }
+
+  if ( opts.zoom  && opts.zoom !== false ) {
+    params.push( 'zoom=' + opts.zoom );
+  }
+
+  if ( opts.mapType ) {
+    params.push( 'type=' + opts.mapType );
+  }
+
+  if ( !opts.apiKey ) {
+    params.push( 'output=embed' );
+  }
+
+  params = params.join( '&' );
+  return urlRoot + params;
 
 };
 
@@ -431,18 +568,23 @@ var renderEmbeddedMap = function( opts ) {
  *
  * @return {[type]}
  */
-var renderStaticMap = function( opts ) {
+var renderStaticMap = function( options ) {
+  var opts = extend( {}, options );
   var dest = isDomNode( opts.target ) ? opts.target : document.querySelector( opts.target );
   var mapHtml;
+  var mapUrl;
 
   if ( !isDomNode( dest ) ) {
     window.console && console.log( dest + messages.invalidTarget );
     return;
   }
 
-  mapHtml = '<div class="' + opts.staticWrapperClass + '">';
-  mapHtml += '<img src="' + renderStaticMapUrl( opts ) + '" />';
-  mapHtml += '</div>';
+  mapUrl = renderStaticMapUrl( opts );
+
+  mapHtml = '<a class="' + opts.mapLinkClass + '" href="' + mapUrl + '">';
+  mapHtml += '<img class="' + opts.staticImgClass + '" ';
+  mapHtml += 'src="' + mapUrl + '" />';
+  mapHtml += '</a>';
 
   dest.innerHTML = mapHtml;
 };
@@ -454,8 +596,7 @@ var renderStaticMap = function( opts ) {
  */
 var FitMap = function( options ) {
   var self = this;
-  var opts = this.configure( options );
-
+  this._options = this.configure( options );
   this.bindResize();
 };
 
@@ -474,29 +615,25 @@ FitMap.prototype = {
    * @return {[type]}
    */
   configure: function( options ) {
+    var opts;
+
     if ( !this._options ) {
-      this._options = extend( {}, defaults, true );
+      opts = extend( defaults, options );
     }
 
-    var opts = extend( this._options, options, true );
+    if ( !opts.address || ( !opts.lat && !opts.lng ) ) {
+      window.console && console.log( messages.notEnoughData );
+      return;
+    }
+
+    //opts = extend( this._options, options, true );
 
     opts.address = opts.address ? formatAddress( opts.address ) : null;
-
-    opts.height = isNumber( opts.height ) ? opts.height : isNumber( stripUnit( opts.height ) ) ? stripUnit( opts.height ) : defaults.height;
-
-    opts.width = isNumber( opts.width ) ? opts.width : isNumber( stripUnit( opts.width ) ) ? stripUnit( opts.width ) : defaults.width;
-
+    opts.size = opts.size || defaults.size;
     opts.zoom = isNumber( opts.zoom ) ? opts.zoom : defaults.zoom;
-
-    if ( isObject( opts.coord ) ) {
-
-      opts.coord.latitude = isNumber( opts.coord.latitude ) ? opts.coord.latitude : null;
-
-      opts.coord.longitude = isNumber( opts.coord.longitude ) ? opts.coord.longitude : null;
-    }
-
+    opts.lat = opts.lat || defaults.lat;
+    opts.lng = opts.lng || defaults.lng;
     opts.mapUrl = opts.mapUrl ? opts.mapUrl : renderEmbeddedMapUrl( opts );
-
     opts.breakpoint = isNumber( opts.breakpoint ) ? opts.breakpoint : defaults.breakpoint;
 
     return opts;
@@ -527,25 +664,19 @@ FitMap.prototype = {
    */
   render: function( target ) {
     var opts = this._options;
-    var coords = opts.coord;
     var mapWrapper = document.querySelector( opts.wrapperClass );
-    var staticMapWrapper = document.querySelector( opts.staticWrapperClass );
+    var mapLink = document.querySelector( opts.mapLink );
 
     opts.target = target || opts.target;
 
     clientWidth = clientWidth || document.body.clientWidth;
-
-    if ( !opts.address && !opts.coord ) {
-      window.console && console.log( messages.notEnoughData );
-      return;
-    }
 
     if ( clientWidth > opts.breakpoint ) {
       if ( !mapWrapper ) {
         renderEmbeddedMap( opts );
       }
     } else {
-      if ( !staticMapWrapper ) {
+      if ( !mapLink ) {
         renderStaticMap( opts );
       }
     }
